@@ -3,7 +3,7 @@ import setuptools
 setuptools.setup(
     name="chompchain-wallet",
     version="0.1",
-    packages=['chompchain_wallet'],
+    packages=['chompchainwallet'],
     include_package_data=True,
     description='Wallet for chompchain.',
     long_description=open('README.md', 'r').read(),
