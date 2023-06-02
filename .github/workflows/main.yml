@@ -1,0 +1,20 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+jobs: 
+  Protect:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Arborist
+      id: arborist
+      uses: term-world/arborist@v0.1.5
+      with:
+        branches: '["main"]'
+        min-approvals: 2
+        enforce-admins: true
+        force-protect: true
+    env:
+      GITHUB_TOKEN: ${{ secrets.ARBORIST }}
