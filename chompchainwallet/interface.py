@@ -1,9 +1,9 @@
 import os
 import json
 import requests
-from Crypto.Hash import SHA256
-from Crypto.PublicKey import ECC
-from Crypto.Signature import DSS
+import pickle
+import falcon
+import getpass
 
 from .address import Address
 
@@ -20,25 +20,24 @@ class Wallet:
             self.__generate_keys()
             self.__set_permissions()
         self.__load_keys()
-        self.address = Address(self.keys[".cc.pub"])
+        self.address = Address(self.keys[".cc.pub"].h)
 
     def __generate_keys(self) -> None:
-        private_key = ECC.generate(curve = 'P-256')
-        self.keys[".cc.priv"] = private_key
-        self.keys[".cc.pub"] = private_key.public_key()
+        self.keys[".cc.priv"] = falcon.SecretKey(256)
+        self.keys[".cc.pub"] = falcon.PublicKey(self.keys[".cc.priv"])
         for key in self.keys:
-            with open(f"{self.wallet_dir}/{key}", "wt") as fh:
-                fh.write(self.keys[key].export_key(format = "PEM"))
+            with open(f"{self.wallet_dir}/{key}", "wb") as fh:
+                pickle.dump(self.keys[key], fh)
 
     def __set_permissions(self) -> None:
         os.system(f"chmod 700 {self.wallet_dir}")
         for key in self.keys:
             os.system(f"chmod 600 {self.wallet_dir}/{key}")
-    
+
     def __load_keys(self) -> dict:
         for key in self.keys:
-            with open(f"{self.wallet_dir}/{key}", "rt") as fh:
-                self.keys[key] = ECC.import_key(fh.read())
+            with open(f"{self.wallet_dir}/{key}", "rb") as fh:
+                self.keys[key] = pickle.load(fh)
 
     """
     TEMPORARILY DEPRECATING; ADDRESSES MIGHT OBSOLETE ORIGINAL APPROACH
@@ -61,7 +60,6 @@ class Wallet:
 
     def sign(self, transaction: str = ""):
         """ Signs transaction with private key? """
-        key = ECC.import_key(open(f"{self.wallet_dir}/.cc.priv").read())
-        hashed_tx = SHA256.new(transaction.encode('utf-8'))
-        signer = DSS.new(key, 'fips-186-3')
-        return signer.sign(hashed_tx).hex()
+        return self.keys[".cc.priv"].sign(
+            transaction.encode("utf-8")
+        ).hex()
