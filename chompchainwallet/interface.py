@@ -61,6 +61,7 @@ class Wallet:
     """
 
     def __make_key_tree(self) -> MerkleTree:
+        """ Make full tree from key """
         tree = MerkleTree()
         for value in self.keys[".cc.pub"].h:
             tree.append_entry(str(value))
