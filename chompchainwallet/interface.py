@@ -6,6 +6,7 @@ import falcon
 import getpass
 
 from .address import Address
+from pymerkle import MerkleTree
 
 class Wallet:
 
@@ -20,7 +21,8 @@ class Wallet:
             self.__generate_keys()
             self.__set_permissions()
         self.__load_keys()
-        self.address = Address(self.keys[".cc.pub"].h)
+        self.keys[".cc.pub"] = self.__make_key_tree()
+        self.address = Address(self.keys[".cc.pub"])
 
     def __generate_keys(self) -> None:
         self.keys[".cc.priv"] = falcon.SecretKey(256)
@@ -57,6 +59,12 @@ class Wallet:
         except requests.exceptions.RequestException as e:
             return False
     """
+
+    def __make_key_tree(self) -> MerkleTree:
+        tree = MerkleTree()
+        for value in self.keys[".cc.pub"].h:
+            tree.append_entry(str(value))
+        return tree
 
     def sign(self, transaction: str = ""):
         """ Signs transaction with private key? """
