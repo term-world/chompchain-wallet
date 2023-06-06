@@ -1,0 +1,2 @@
+from couchsurf import Connection
+

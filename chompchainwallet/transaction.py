@@ -14,7 +14,7 @@ class Transaction:
         setattr(self, "to_addr", to_addr)
 
         if not from_addr:
-            setattr(self, "from_addr", wallet.address)
+            setattr(self, "from_addr", str(wallet.address))
 
         hash = hashlib.new('sha256')
         hash.update(self.__str__().encode())
