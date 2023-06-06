@@ -1,15 +1,20 @@
 import json
 import hashlib
 from datetime import datetime
-from ..wallet.wallet import Wallet
+from .interface import Wallet
 
 class Transaction:
 
-    def __init__(self, to: str = "", from: str = "", **kwargs):
+    def __init__(self, to_addr: str = "", from_addr = "",  **kwargs):
         """ Constructor """
-        self.data = kwargs
 
-        setattr(self, "from", from)
+        wallet = Wallet()
+
+        self.data = kwargs
+        setattr(self, "to_addr", to_addr)
+
+        if not from_addr:
+            setattr(self, "from_addr", wallet.address)
 
         hash = hashlib.new('sha256')
         hash.update(self.__str__().encode())
@@ -18,7 +23,6 @@ class Transaction:
         time = datetime.now().timestamp()
         setattr(self, "timestamp", time)
 
-        wallet = Wallet()
         setattr(self,"signature",wallet.sign(str(self)))
 
     def to_dict(self) -> dict:
