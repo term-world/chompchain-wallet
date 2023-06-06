@@ -5,10 +5,8 @@ from .interface import Wallet
 
 class Transaction:
 
-    def __init__(self, to_addr: str = "", from_addr = "",  **kwargs):
+    def __init__(self, wallet: Wallet(), to_addr: str = "", from_addr = "",  **kwargs):
         """ Constructor """
-
-        wallet = Wallet()
 
         self.data = kwargs
         setattr(self, "to_addr", to_addr)
