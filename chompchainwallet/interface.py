@@ -50,10 +50,20 @@ class Wallet:
         for value in self.keys[".cc.pub"].h:
             tree.append_entry(str(value))
         return tree
+    
+    def __request_receiver_node(self) -> dict:
+        response = requests.get(
+            "https://dir.chain.chompe.rs/directory/get" # "boot" node
+        )
+        node = random.choice(json.loads(response.text))
 
     def transact(self, to_addr: str = "", data: dict = {}) -> None:
         transaction = Transaction(to_addr = to_addr, **data)
-        print(transaction.__dict__)
+        node_addr = self.__request_receiver_node()
+        response = requests.post(
+            f"{node_addr["host"]}:{node_addr["port"]}/transactions/new",
+            data = json.dumps(transaction)
+        )
 
     def sign(self, transaction: str = ""):
         """ Signs transaction with private key? """
