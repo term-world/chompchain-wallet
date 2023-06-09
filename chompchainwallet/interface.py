@@ -50,7 +50,7 @@ class Wallet:
         for value in self.keys[".cc.pub"].h:
             tree.append_entry(str(value))
         return tree
-    
+
     def __request_receiver_node(self) -> dict:
         response = requests.get(
             "https://dir.chain.chompe.rs/directory/get" # "boot" node
@@ -61,7 +61,7 @@ class Wallet:
         transaction = Transaction(to_addr = to_addr, **data)
         node_addr = self.__request_receiver_node()
         response = requests.post(
-            f"{node_addr["host"]}:{node_addr["port"]}/transactions/new",
+            f"{node_addr['host']}:{node_addr['port']}/transactions/new",
             data = json.dumps(transaction)
         )
 
