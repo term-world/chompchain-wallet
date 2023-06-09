@@ -2,11 +2,14 @@ import os
 import json
 import requests
 import pickle
-import falcon
 import getpass
+import hashlib
+
+import falconsign as falcon
 
 from .address import Address
 from pymerkle import MerkleTree
+from datetime import datetime
 
 class Wallet:
 
@@ -41,34 +44,58 @@ class Wallet:
             with open(f"{self.wallet_dir}/{key}", "rb") as fh:
                 self.keys[key] = pickle.load(fh)
 
-    """
-    TEMPORARILY DEPRECATING; ADDRESSES MIGHT OBSOLETE ORIGINAL APPROACH
-    def __broadcast_keys(self) -> bool:
-        url = "https://dir.chain.chompe.rs/keys"  # the actual URL to send the keys
-        payload = {
-            "user": "username",  # Replace with the actual username
-            "key": {
-                "public_key": str(self.keys[".cc.pub"])
-            }
-        }
-        try:
-            response = requests.post(url, json=payload)
-            if response.status_code == 200:
-                return True
-            raise
-        except requests.exceptions.RequestException as e:
-            return False
-    """
-
     def __make_key_tree(self) -> MerkleTree:
         """ Make full tree from key """
         tree = MerkleTree()
         for value in self.keys[".cc.pub"].h:
             tree.append_entry(str(value))
         return tree
+    
+    def __request_receiver_node(self) -> dict:
+        response = requests.get(
+            "https://dir.chain.chompe.rs/directory/get" # "boot" node
+        )
+        node = random.choice(json.loads(response.text))
+
+    def transact(self, to_addr: str = "", data: dict = {}) -> None:
+        transaction = Transaction(to_addr = to_addr, **data)
+        node_addr = self.__request_receiver_node()
+        response = requests.post(
+            f"{node_addr["host"]}:{node_addr["port"]}/transactions/new",
+            data = json.dumps(transaction)
+        )
 
     def sign(self, transaction: str = ""):
         """ Signs transaction with private key? """
         return self.keys[".cc.priv"].sign(
             transaction.encode("utf-8")
         ).hex()
+
+class Transaction:
+
+    def __init__(self, wallet: Wallet = Wallet(), to_addr: str = "", **kwargs):
+        """ Constructor """
+
+        self.data = kwargs
+        setattr(self, "to_addr", to_addr)
+
+        if "from_addr" in kwargs:
+            setattr(self, "from_addr", str(kwargs["from_addr"]))
+        else:
+            setattr(self, "from_addr", str(wallet.address))
+
+        hash = hashlib.new('sha256')
+        hash.update(self.__str__().encode())
+        setattr(self, "hash", hash.hexdigest())
+
+        time = datetime.now().timestamp()
+        setattr(self, "timestamp", time)
+
+        setattr(self,"signature",wallet.sign(str(self)))
+
+    def to_dict(self) -> dict:
+        """ Returns dictionary repr of object properties """
+        return self.__dict__
+
+    def __str__(self):
+        return json.dumps(self.__dict__, separators = (',', ':'))

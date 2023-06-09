@@ -1,2 +1,1 @@
-from .interface import Wallet
-from .transaction import Transaction
+from .interface import Wallet, Transaction
