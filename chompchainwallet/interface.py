@@ -2,14 +2,17 @@ import os
 import json
 import requests
 import pickle
-import falcon
 import getpass
 import shutil
+import hashlib
+
+import falconsign as falcon
 
 from .address import Address
 from pymerkle import MerkleTree
 from marketplace import Package
 from couchsurf import Connection
+from datetime import datetime
 
 class Wallet:
 
@@ -55,6 +58,20 @@ class Wallet:
             tree.append_entry(str(value))
         return tree
 
+    def __request_receiver_node(self) -> dict:
+        response = requests.get(
+            "https://dir.chain.chompe.rs/directory/get" # "boot" node
+        )
+        node = random.choice(json.loads(response.text))
+
+    def transact(self, to_addr: str = "", data: dict = {}) -> None:
+        transaction = Transaction(to_addr = to_addr, **data)
+        node_addr = self.__request_receiver_node()
+        response = requests.post(
+            f"{node_addr['host']}:{node_addr['port']}/transactions/new",
+            data = json.dumps(transaction)
+        )
+
     def sign(self, transaction: str = ""):
         """ Signs transaction with private key? """
         return self.keys[".cc.priv"].sign(
@@ -93,3 +110,32 @@ class SmartContract(Package):
         shutil.rmtree(f"{os.getcwd()}/{self.name}/.wallet")
         super().make(options = options)
         self.__send_to_network()
+
+class Transaction:
+
+    def __init__(self, wallet: Wallet = Wallet(), to_addr: str = "", **kwargs):
+        """ Constructor """
+
+        self.data = kwargs
+        setattr(self, "to_addr", to_addr)
+
+        if "from_addr" in kwargs:
+            setattr(self, "from_addr", str(kwargs["from_addr"]))
+        else:
+            setattr(self, "from_addr", str(wallet.address))
+
+        hash = hashlib.new('sha256')
+        hash.update(self.__str__().encode())
+        setattr(self, "hash", hash.hexdigest())
+
+        time = datetime.now().timestamp()
+        setattr(self, "timestamp", time)
+
+        setattr(self,"signature",wallet.sign(str(self)))
+
+    def to_dict(self) -> dict:
+        """ Returns dictionary repr of object properties """
+        return self.__dict__
+
+    def __str__(self):
+        return json.dumps(self.__dict__, separators = (',', ':'))
