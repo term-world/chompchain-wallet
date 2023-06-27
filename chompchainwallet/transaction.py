@@ -49,7 +49,7 @@ class CmdTransaction():
 
 def transmit(txn: Transaction = Transaction()):
     response = requests.post(
-        "http://chain.chompe.rs:1815/transactions/new",
+        "https://chain.chompe.rs/transactions/new",
         data = json.dumps(txn.__dict__)
     )
     # TODO: Create a cache to save transactions in case
