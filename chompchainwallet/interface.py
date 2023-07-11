@@ -3,22 +3,25 @@ import json
 import requests
 import pickle
 import getpass
+import shutil
 import hashlib
 
 import falconsign as falcon
 
 from .address import Address
-from pymerkle import MerkleTree
+from pymerkle import InmemoryTree as MerkleTree
+from marketplace import Package
+from couchsurf import Connection
 from datetime import datetime
 
 class Wallet:
 
-    def __init__(self):
+    def __init__(self, wallet_dir: str = "~/.wallet"):
         self.keys = {
             ".cc.priv": None,
             ".cc.pub": None
         }
-        self.wallet_dir = os.path.expanduser("~/.wallet")
+        self.wallet_dir = os.path.expanduser(wallet_dir)
         if not os.path.isdir(self.wallet_dir):
             os.mkdir(self.wallet_dir)
             self.__generate_keys()
@@ -41,14 +44,18 @@ class Wallet:
 
     def __load_keys(self) -> dict:
         for key in self.keys:
-            with open(f"{self.wallet_dir}/{key}", "rb") as fh:
-                self.keys[key] = pickle.load(fh)
+            try:
+                with open(f"{self.wallet_dir}/{key}", "rb") as fh:
+                    self.keys[key] = pickle.load(fh)
+            except FileNotFoundError:
+                # FileNotFoundError handles public-key-only contracts
+                continue
 
     def __make_key_tree(self) -> MerkleTree:
         """ Make full tree from key """
         tree = MerkleTree()
         for value in self.keys[".cc.pub"].h:
-            tree.append_entry(str(value))
+            tree.append(bytes(str(value), encoding = 'utf-8'))
         return tree
 
     def __request_receiver_node(self) -> dict:
@@ -70,6 +77,39 @@ class Wallet:
         return self.keys[".cc.priv"].sign(
             transaction.encode("utf-8")
         ).hex()
+
+class SmartContract(Package):
+
+    def __init__(self, name: str = "", files: any = ""):
+        super().__init__(name = name, files = files)
+        self.conn = Connection("contracts")
+
+    def __send_to_network(self):
+        self.conn.request.put(
+            doc_id = self.address,
+            doc = {"creator": f"{Wallet().address}"},
+            attachment = f"{self.name}.pyz"
+        )
+
+    def make(self, options: dict = {}) -> None:
+        if not os.path.isdir(self.name):
+            for file in self.files:
+                self.folder(file)
+        wallet_dir  = f"{os.getcwd()}/{self.name}/.wallet"
+        self.wallet = Wallet(wallet_dir = wallet_dir)
+        self.address = str(self.wallet.address)
+        # Copy address into package for later reference
+        with open(f"{os.getcwd()}/{self.name}/address.py", "w") as fh:
+            fh.write(f"ADDRESS = '{self.address}'")
+        # Copy the contract API/decorators into the contract
+        shutil.copy(
+            f"{os.path.dirname(os.path.abspath(__file__))}/contract.py",
+            f"{os.getcwd()}/{self.name}/contract.py"
+        )
+        # Bounce the private key; it's useless
+        shutil.rmtree(f"{os.getcwd()}/{self.name}/.wallet")
+        super().make(options = options)
+        self.__send_to_network()
 
 class Transaction:
 
