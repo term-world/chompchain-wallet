@@ -9,7 +9,7 @@ import hashlib
 import falconsign as falcon
 
 from .address import Address
-from pymerkle import MerkleTree
+from pymerkle import InmemoryTree as MerkleTree
 from marketplace import Package
 from couchsurf import Connection
 from datetime import datetime
@@ -55,7 +55,7 @@ class Wallet:
         """ Make full tree from key """
         tree = MerkleTree()
         for value in self.keys[".cc.pub"].h:
-            tree.append_entry(str(value))
+            tree.append(bytes(str(value), encoding = 'utf-8'))
         return tree
 
     def __request_receiver_node(self) -> dict:
