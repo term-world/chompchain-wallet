@@ -1,5 +1,5 @@
-couchsurf==0.3
-falconsign==0.1
-marketplace==0.1
+couchsurf
+falconsign
+marketplace
 pymerkle==5.0.3
 Requests==2.31.0
