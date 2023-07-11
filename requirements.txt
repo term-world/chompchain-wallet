@@ -1,2 +1,5 @@
-pymerkle==4.0.0
-requests==2.28.2
+couchsurf
+falconsign
+marketplace
+pymerkle==5.0.3
+Requests==2.31.0
