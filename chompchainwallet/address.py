@@ -5,7 +5,7 @@ class Address:
     def __init__(self, public_key: MerkleTree, network: str = "100x"):
         """ Constructor """
         self.prefix = network
-        self.value = str(public_key.root.value)
+        self.value = public_key.root.value.hex()
 
     def __repr__(self) -> str:
         """ Representation """
